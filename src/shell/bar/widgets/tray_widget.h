@@ -38,6 +38,7 @@ public:
     // Read by TrayDrawerPanel, not by TrayWidget: they live here so the tray widget definition owns their defaults.
     double drawerItemSize = Style::baseGlyphSize;
     bool detachedPanel = false;
+    bool forceAppIcons = false;
   };
 
   TrayWidget(ConfigService& config, TrayService* tray, Options options);
@@ -59,6 +60,7 @@ private:
   void doUpdate(Renderer& renderer) override;
   void buildDesktopIconIndex();
   [[nodiscard]] std::string resolveIconPath(const TrayItemInfo& item);
+  [[nodiscard]] std::string resolveDesktopIconPath(const TrayItemInfo& item);
   void syncState(Renderer& renderer);
   void rebuild(Renderer& renderer);
   [[nodiscard]] std::string iconForItem(const TrayItemInfo& item) const;
@@ -109,4 +111,5 @@ private:
   Node* m_hoverOverlayParent = nullptr;
   std::vector<HoverOverlayEntry> m_hoverOverlays;
   float m_capsuleCross = 0.0F;
+  bool m_forceAppIcons = false;
 };
