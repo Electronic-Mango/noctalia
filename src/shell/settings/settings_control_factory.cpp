@@ -1293,7 +1293,6 @@ namespace settings {
           ui::button({
               // nullopt, not "": an empty glyph name resolves to the missing-glyph skull.
               .glyph = value.empty() ? std::nullopt : std::optional<std::string>{"close"},
-              .fontSize = Style::fontSizeCaption * scale,
               .glyphSize = Style::fontSizeCaption * scale,
               .variant = ButtonVariant::Ghost,
               .minWidth = Style::controlHeight * scale,
@@ -1354,7 +1353,6 @@ namespace settings {
       row->addChild(
           ui::button({
               .glyph = "close",
-              .fontSize = Style::fontSizeCaption * scale,
               .glyphSize = Style::fontSizeCaption * scale,
               .variant = ButtonVariant::Ghost,
               .minWidth = Style::controlHeight * scale,
@@ -1407,7 +1405,6 @@ namespace settings {
     addRow->addChild(
         ui::button({
             .glyph = "add",
-            .fontSize = Style::fontSizeCaption * scale,
             .glyphSize = Style::fontSizeCaption * scale,
             .variant = ButtonVariant::Ghost,
             .minWidth = Style::controlHeight * scale,
