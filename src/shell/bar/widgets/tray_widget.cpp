@@ -18,6 +18,7 @@
 #include "ui/builders.h"
 #include "ui/palette.h"
 #include "ui/style.h"
+#include "util/file_utils.h"
 #include "util/string_utils.h"
 
 #include <algorithm>
@@ -165,9 +166,10 @@ namespace {
 
 TrayWidget::TrayWidget(ConfigService& config, TrayService* tray, Options options)
     : m_config(config), m_tray(tray), m_hiddenItems(std::move(options.hiddenItems)),
-      m_pinnedItems(std::move(options.pinnedItems)), m_hidePassive(options.hidePassive),
-      m_drawerMode(options.drawerMode), m_itemActivated(std::move(options.itemActivated)),
-      m_barPosition(std::move(options.barPosition)), m_panelGridMode(options.panelGridMode),
+      m_pinnedItems(std::move(options.pinnedItems)), m_iconOverrides(std::move(options.iconOverrides)),
+      m_hidePassive(options.hidePassive), m_drawerMode(options.drawerMode),
+      m_itemActivated(std::move(options.itemActivated)), m_barPosition(std::move(options.barPosition)),
+      m_panelGridMode(options.panelGridMode),
       m_panelGridColumns(std::clamp<std::size_t>(options.panelGridColumns, 1U, 5U)),
       m_inlineEntryGap(std::max(0.0F, options.inlineEntryGap)), m_matchAdjacentSpacing(options.matchAdjacentSpacing),
       m_customItemSize(options.customItemSize) {
@@ -565,7 +567,6 @@ void TrayWidget::rebuild(Renderer& renderer) {
     if (m_panelGridMode && isPinnedItem(item)) {
       continue;
     }
-    const std::string iconPath = resolveIconPath(item);
     const float itemSize = m_customItemSize.value_or(Style::baseGlyphSize) * m_contentScale;
     const float iconSize = itemSize;
     const int iconRequestSize = std::max(32, static_cast<int>(std::round(iconSize * 2.0F)));
@@ -574,11 +575,14 @@ void TrayWidget::rebuild(Renderer& renderer) {
     float iconW = iconSize;
     float iconH = iconSize;
 
-    if (!iconPath.empty()) {
+    auto loadIconFile = [&](const std::string& iconPath, float imageSize) {
+      if (iconPath.empty()) {
+        return;
+      }
       auto image = ui::image({
           .fit = ImageFit::Contain,
-          .width = iconSize,
-          .height = iconSize,
+          .width = imageSize,
+          .height = imageSize,
       });
       const bool symbolicPath = isSymbolicIconPath(iconPath);
       const auto appIconTint = currentAppIconColorizeTint();
@@ -603,8 +607,8 @@ void TrayWidget::rebuild(Renderer& renderer) {
         if (symbolicPath && !isSvgPath(iconPath)) {
           image->setTint(symbolicColor);
         }
-        iconW = iconSize;
-        iconH = iconSize;
+        iconW = imageSize;
+        iconH = imageSize;
         m_loadedImages.push_back(image.get());
         if (appIconTint.has_value() && !symbolicPath) {
           m_colorizedAppIcons.push_back(image.get());
@@ -613,6 +617,50 @@ void TrayWidget::rebuild(Renderer& renderer) {
       } else {
         kLog.debug("tray widget icon id={} source=file path={} failed-to-load", item.id, iconPath);
       }
+    };
+
+    const std::string* overrideToken = nullptr;
+    const std::string* overridePath = nullptr;
+    for (const auto& [token, path] : m_iconOverrides) {
+      // Resolve overlapping matches deterministically, independent of map iteration order.
+      if (tray::tokenMatchesItem(token, item) && (overrideToken == nullptr || token < *overrideToken)) {
+        overrideToken = &token;
+        overridePath = &path;
+      }
+    }
+    if (overridePath != nullptr) {
+      const float overrideSize = std::max(1.0F, iconSize - 2.0F);
+      std::string resolvedOverride = FileUtils::expandUserPath(*overridePath).string();
+      const bool isPath = resolvedOverride.contains('/');
+      if (!isPath) {
+        const int logicalSize = std::max(1, static_cast<int>(std::round(overrideSize)));
+        const int rasterSize = std::max(32, static_cast<int>(std::round(overrideSize * 2.0F)));
+        resolvedOverride = m_iconResolver.resolveStatusVector(*overridePath, logicalSize);
+        if (resolvedOverride.empty()) {
+          resolvedOverride = m_iconResolver.resolve(*overridePath, rasterSize);
+        }
+      }
+      loadIconFile(resolvedOverride, overrideSize);
+      if (iconNode == nullptr && !isPath && GlyphRegistry::contains(*overridePath)) {
+        auto glyph = ui::glyph({
+            .glyph = *overridePath,
+            .glyphSize = overrideSize,
+            .color = widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurface)),
+        });
+        glyph->measure(renderer);
+        iconW = glyph->width();
+        iconH = glyph->height();
+        iconNode = std::move(glyph);
+      }
+      if (iconNode == nullptr) {
+        kLog.warn(
+            "tray widget icon override id={} value={} failed-to-load; using application icon", item.id,
+            ImageSourceLog::describe(*overridePath)
+        );
+      }
+    }
+    if (iconNode == nullptr) {
+      loadIconFile(resolveIconPath(item), iconSize);
     }
 
     if (iconNode == nullptr) {

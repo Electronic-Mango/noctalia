@@ -4757,6 +4757,10 @@
           "description": "Overrides the widget color for icons only; fixed hex colors are also supported",
           "label": "Icon Color"
         },
+        "icon-overrides": {
+          "description": "Map tray item identifiers to icon file paths or names; names try the current theme, then built-in Tabler icons, then the application icon. Theme names omit extensions; paths containing symbolic or /status/ use symbolic coloring",
+          "label": "Icon Overrides"
+        },
         "icon-scale": {
           "description": "Scale of taskbar application icons relative to their default size",
           "label": "Icon Scale"

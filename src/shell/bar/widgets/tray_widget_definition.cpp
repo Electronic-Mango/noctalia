@@ -16,6 +16,9 @@ const noctalia::bar::WidgetDefinition<TrayWidget::Options, TrayWidgetDefinitionC
               field<&Options::pinnedItems>({
                   .key = "pinned",
               }),
+              field<&Options::iconOverrides>({
+                  .key = "icon_overrides",
+              }),
               field<&Options::hidePassive>({
                   .key = "hide_passive",
               }),
