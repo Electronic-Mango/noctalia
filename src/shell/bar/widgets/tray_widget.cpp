@@ -623,7 +623,7 @@ void TrayWidget::rebuild(Renderer& renderer) {
     const std::string* overridePath = nullptr;
     for (const auto& [token, path] : m_iconOverrides) {
       // Resolve overlapping matches deterministically, independent of map iteration order.
-      if (tray::tokenMatchesItem(token, item) && (overrideToken == nullptr || token < *overrideToken)) {
+      if (tray::pinnedTokenMatchesItem(token, item) && (overrideToken == nullptr || token < *overrideToken)) {
         overrideToken = &token;
         overridePath = &path;
       }
@@ -852,30 +852,12 @@ bool TrayWidget::isHiddenItem(const TrayItemInfo& item) const {
     return false;
   }
 
-  std::vector<std::string> candidates;
-  auto appendVariants = [&candidates](std::string_view text) {
-    for (const auto& variant : identifierVariants(text)) {
-      if (!std::ranges::contains(candidates, variant)) {
-        candidates.push_back(variant);
-      }
-    }
-  };
-
-  appendVariants(item.id);
-  appendVariants(item.busName);
-  appendVariants(item.objectPath);
-  appendVariants(item.itemName);
-  appendVariants(item.processName);
-  appendVariants(item.title);
-  appendVariants(item.iconName);
-  appendVariants(item.attentionIconName);
-
+  const auto candidates = tray::hiddenMatchCandidates(item);
   for (const auto& needle : m_hiddenItems) {
     if (std::ranges::contains(candidates, needle)) {
       return true;
     }
   }
-
   return false;
 }
 
@@ -884,7 +866,9 @@ bool TrayWidget::isPinnedItem(const TrayItemInfo& item) const {
     return false;
   }
 
-  return std::ranges::any_of(m_pinnedItems, [&](const auto& needle) { return tray::tokenMatchesItem(needle, item); });
+  return std::ranges::any_of(m_pinnedItems, [&](const auto& needle) {
+    return tray::pinnedTokenMatchesItem(needle, item);
+  });
 }
 
 void TrayWidget::buildDesktopIconIndex() {
