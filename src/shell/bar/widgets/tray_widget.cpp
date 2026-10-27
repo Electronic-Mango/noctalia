@@ -1048,7 +1048,17 @@ void TrayWidget::layoutHoverOverlays() {
   float underlayY = 0.0F;
   Node::absolutePosition(m_hoverOverlayParent, underlayX, underlayY);
 
-  for (auto& entry : m_hoverOverlays) {
+  auto mainPosition = [this](const HoverOverlayEntry& entry) {
+    float x = 0.0F;
+    float y = 0.0F;
+    Node::absolutePosition(entry.area, x, y);
+    return m_isVertical ? y : x;
+  };
+  auto mainSize = [this](const HoverOverlayEntry& entry) {
+    return m_isVertical ? entry.area->height() : entry.area->width();
+  };
+  for (std::size_t i = 0; i < m_hoverOverlays.size(); ++i) {
+    auto& entry = m_hoverOverlays[i];
     if (entry.area == nullptr || entry.box == nullptr) {
       continue;
     }
@@ -1057,9 +1067,30 @@ void TrayWidget::layoutHoverOverlays() {
     Node::absolutePosition(entry.area, areaX, areaY);
 
     const float mainExtent = m_isVertical ? entry.area->height() : entry.area->width();
+    const float mainStart = m_isVertical ? areaY : areaX;
+    float before = entry.padding;
+    float after = entry.padding;
+    if (barCapsuleSpec().enabled) {
+      const bool hasPrevious = i > 0 && m_hoverOverlays[i - 1].area != nullptr;
+      const bool hasNext = i + 1 < m_hoverOverlays.size() && m_hoverOverlays[i + 1].area != nullptr;
+      if (hasPrevious) {
+        const auto& previous = m_hoverOverlays[i - 1];
+        before = std::min(before, std::max(0.0F, (mainStart - mainPosition(previous) - mainSize(previous)) * 0.5F));
+      }
+      if (hasNext) {
+        after = std::min(after, std::max(0.0F, (mainPosition(m_hoverOverlays[i + 1]) - mainStart - mainExtent) * 0.5F));
+      }
+      // End icons mirror the padding facing their only neighbor.
+      if (!hasPrevious && hasNext) {
+        before = after;
+      }
+      if (hasPrevious && !hasNext) {
+        after = before;
+      }
+    }
 
-    const float hoverW = m_isVertical ? m_capsuleCross : mainExtent + 2.0F * entry.padding;
-    const float hoverH = m_isVertical ? mainExtent + 2.0F * entry.padding : m_capsuleCross;
+    const float hoverW = m_isVertical ? m_capsuleCross : mainExtent + before + after;
+    const float hoverH = m_isVertical ? mainExtent + before + after : m_capsuleCross;
 
     entry.box->setSize(hoverW, hoverH);
     entry.box->setRadius(resolvedBarCapsuleRadius(hoverW, hoverH));
@@ -1069,9 +1100,9 @@ void TrayWidget::layoutHoverOverlays() {
 
     if (m_isVertical) {
       boxX += (entry.area->width() - m_capsuleCross) * 0.5F;
-      boxY -= entry.padding;
+      boxY -= before;
     } else {
-      boxX -= entry.padding;
+      boxX -= before;
       boxY += (entry.area->height() - m_capsuleCross) * 0.5F;
     }
 
