@@ -161,7 +161,7 @@ Maintainers decide every item in the `Inbox` column of the Maintainer Triage boa
 
 After every minor release, run `python3 tools/issue-triage.py candidates --out /tmp/triage` and work through `stale-version-bugs.tsv`, `fixed-by-commit.tsv`, and `duplicates.tsv`. Write the decisions to a TSV (`number`, `action`, `arg`; see the script header for the actions), review the output of `python3 tools/issue-triage.py apply decisions.tsv`, then add `--execute`. The script closes with templated replies, so each reply links [SCOPE.md](SCOPE.md) or names the fixing commit.
 
-`needs-info` and `needs-retest` mark issues waiting on the reporter. A daily workflow marks them `stale` after 7 days without activity and closes them after 7 more; a reply from the reporter removes the labels. Closed issues can be reopened. Issues with 3 or more reactions or the `PRs welcome` label are never closed by the script and are closed by hand only.
+`needs-info` and `needs-retest` mark issues waiting on the reporter, and a workflow moves their board card to `Waiting`. A daily workflow marks them `stale` after 7 days without activity and closes them after 7 more. A reply from the reporter removes the labels and moves the card to `Reviewing`. Closed issues can be reopened. Issues with 3 or more reactions or the `PRs welcome` label are never closed by the script and are closed by hand only.
 
 ## Pull Request Template
 
