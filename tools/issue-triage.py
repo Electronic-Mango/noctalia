@@ -87,9 +87,9 @@ REPLY_OUT_OF_SCOPE = AUTOMATED_NOTE + (
 REPLY_PLUGIN = AUTOMATED_NOTE + (
     "Thanks for the suggestion! Per [SCOPE.md](" + SCOPE_URL + "), features that are useful to some "
     "users but not essential to the shell belong in plugins, so we will not track this one in core. "
-    "If the [plugin API](https://docs.noctalia.dev) is missing something you need to build it, please "
-    "open an issue describing the missing API. You are also welcome to talk it through with us on "
-    "[Discord](https://discord.noctalia.dev)."
+    "If the [plugin API](https://docs.noctalia.dev) is missing something you need to build it, we are "
+    "happy to add new endpoints for it, so please open an issue describing what you need. You are "
+    "also welcome to talk it through with us on [Discord](https://discord.noctalia.dev)."
 )
 REPLY_DUPLICATE = AUTOMATED_NOTE + (
     "Thanks for the report! This is a duplicate of {dup}, so we are closing it in favor of that "
