@@ -14,6 +14,7 @@ Issue backlog triage helper for noctalia-dev/noctalia. Requires an authenticated
   apply DECISIONS.tsv [--execute]
       Applies maintainer decisions, one row per issue: number<TAB>action<TAB>arg. Blank lines and
       lines starting with # are ignored. Dry run unless --execute is given.
+      --allow-voted N [N ...] lets close actions on those issues skip the guard below.
 
         retest        label needs-retest and ask the reporter to retest on the latest release
         needs-info    label needs-info and ask the reporter for details
@@ -29,6 +30,7 @@ Usage:
   python3 tools/issue-triage.py candidates --out /tmp/triage
   python3 tools/issue-triage.py apply decisions.tsv            # dry run
   python3 tools/issue-triage.py apply decisions.tsv --execute
+  python3 tools/issue-triage.py apply decisions.tsv --execute --allow-voted 3591   # override the vote guard
 """
 
 from __future__ import annotations
@@ -48,7 +50,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VOTE_GUARD = 3
 PROTECTED_LABEL = "PRs welcome"
 WRITE_DELAY_SECONDS = 2
-DUPLICATE_SIMILARITY = 0.5
+DUPLICATE_SIMILARITY = 0.3
 MAX_ISSUES = 2000
 
 SCOPE_URL = f"https://github.com/{REPO}/blob/main/SCOPE.md"
@@ -380,7 +382,7 @@ def ensure_labels() -> None:
         run(["gh", "label", "create", name, "-R", REPO, "--color", color, "--description", description, "--force"])
 
 
-def cmd_apply(path: Path, execute: bool) -> None:
+def cmd_apply(path: Path, execute: bool, allow_voted: set[int]) -> None:
     decisions = parse_decisions(path)
     actionable = [d for d in decisions if d.action != "keep"]
     latest = latest_release()
@@ -400,7 +402,8 @@ def cmd_apply(path: Path, execute: bool) -> None:
             print(f"SKIP #{number} {decision.action}: not open")
             continue
         issue = to_issue(raw)
-        if decision.action in CLOSE_ACTIONS and (issue.reactions >= VOTE_GUARD or PROTECTED_LABEL in issue.labels):
+        guarded = issue.reactions >= VOTE_GUARD or PROTECTED_LABEL in issue.labels
+        if decision.action in CLOSE_ACTIONS and guarded and number not in allow_voted:
             print(f"SKIP #{number} {decision.action}: voted ({issue.reactions} reactions, labels {sorted(issue.labels)})")
             continue
 
@@ -435,12 +438,16 @@ def main() -> None:
     apply = sub.add_parser("apply", help="apply maintainer decisions")
     apply.add_argument("decisions", type=Path)
     apply.add_argument("--execute", action="store_true", help="perform the writes; default is a dry run")
+    apply.add_argument(
+        "--allow-voted", type=int, nargs="+", default=[], metavar="N",
+        help="issue numbers whose close actions may skip the vote and PRs welcome guard",
+    )  # fmt: skip
     args = parser.parse_args()
 
     if args.command == "candidates":
         cmd_candidates(args.out)
     else:
-        cmd_apply(args.decisions, args.execute)
+        cmd_apply(args.decisions, args.execute, set(args.allow_voted))
 
 
 if __name__ == "__main__":
