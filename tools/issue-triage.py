@@ -53,40 +53,46 @@ MAX_ISSUES = 2000
 
 SCOPE_URL = f"https://github.com/{REPO}/blob/main/SCOPE.md"
 DUPLICATE_SIMILARITY = 0.3
-REPLY_RETEST = (
-    "Thanks for the report. This was filed against {version}, and the latest release is {latest}. "
-    "A lot has changed since, so it may already be fixed. Could you retest on {latest} and tell us "
-    "whether it still happens? If we hear nothing within 14 days we will close this issue. You can "
-    "reopen it or comment at any time with fresh details."
+AUTOMATED_NOTE = "_This is an automated message from our backlog cleanup, posted from a maintainer's account._\n\n"
+REPLY_RETEST = AUTOMATED_NOTE + (
+    "Hi, and thanks for the report! We are going through older bug reports, and this one was filed "
+    "against {version} while the latest release is {latest}. Even if you commented recently, a lot "
+    "has changed since, so it may already be fixed. Could you give {latest} a try and let us know "
+    "whether it still happens? If we do not hear back within 14 days, this issue will be closed "
+    "automatically. No hard feelings, you can reopen it or comment at any time."
 )
-REPLY_NEEDS_INFO = (
-    "Thanks for the report. We are missing details needed to act on it. Please reply with the "
-    "Noctalia version you run (the latest release is {latest}), your compositor, the exact steps to "
-    "reproduce, and the logs from the terminal where Noctalia was started. If we hear nothing within "
-    "14 days we will close this issue. You can reopen it or comment at any time."
+REPLY_NEEDS_INFO = AUTOMATED_NOTE + (
+    "Hi, and thanks for the report! We are missing a few details to be able to act on it. Could you "
+    "tell us which Noctalia version you run (the latest release is {latest}), your compositor, the "
+    "steps to reproduce, and the logs from the terminal where Noctalia was started? If we do not "
+    "hear back within 14 days, this issue will be closed automatically. You can reopen it or comment "
+    "at any time."
 )
-REPLY_FIXED_TAGGED = (
-    "This was fixed in {sha} and shipped in {tag}. Closing as completed. If it still happens on "
-    "{tag} or later, comment here with details and we will reopen it."
+REPLY_FIXED_TAGGED = AUTOMATED_NOTE + (
+    "Good news: this was fixed in {sha} and shipped in {tag}, so we are closing it as completed. If "
+    "it still happens on {tag} or later, comment here with details and we will reopen it."
 )
-REPLY_FIXED_UNRELEASED = (
-    "This was fixed on main in {sha} and will ship in the next release. Closing as completed. If it "
-    "still happens afterwards, comment here and we will reopen it."
+REPLY_FIXED_UNRELEASED = AUTOMATED_NOTE + (
+    "Good news: this was fixed on main in {sha} and will ship in the next release, so we are closing "
+    "it as completed. If it still happens afterwards, comment here and we will reopen it."
 )
-REPLY_OUT_OF_SCOPE = (
-    "Thanks for the suggestion. We reviewed it against [SCOPE.md](" + SCOPE_URL + ") and it falls "
-    "outside what Noctalia core takes on: {reason}. We are closing it to keep this tracker for bugs "
-    "and accepted work. This is not a verdict on the idea. If you want to discuss it, join us on "
+REPLY_OUT_OF_SCOPE = AUTOMATED_NOTE + (
+    "Thanks for the suggestion! We went through our open requests against [SCOPE.md](" + SCOPE_URL + ") "
+    "and this one falls outside what Noctalia core takes on: {reason}. We are closing it to keep this "
+    "tracker for bugs and accepted work. That is not a verdict on the idea, and you are welcome to "
+    "talk it through with us on [Discord](https://discord.noctalia.dev)."
+)
+REPLY_PLUGIN = AUTOMATED_NOTE + (
+    "Thanks for the suggestion! Per [SCOPE.md](" + SCOPE_URL + "), features that are useful to some "
+    "users but not essential to the shell belong in plugins, so we will not track this one in core. "
+    "If the [plugin API](https://docs.noctalia.dev) is missing something you need to build it, please "
+    "open an issue describing the missing API. You are also welcome to talk it through with us on "
     "[Discord](https://discord.noctalia.dev)."
 )
-REPLY_PLUGIN = (
-    "Thanks for the suggestion. Per [SCOPE.md](" + SCOPE_URL + "), features that are useful to some "
-    "users but not essential to the shell belong in plugins, so we will not track this in core. If "
-    "the plugin API lacks something you need to build it, open a new issue describing the missing API "
-    "surface. See the [docs](https://docs.noctalia.dev) for the plugin API. You are also welcome to "
-    "discuss it on [Discord](https://discord.noctalia.dev)."
+REPLY_DUPLICATE = AUTOMATED_NOTE + (
+    "Thanks for the report! This is a duplicate of {dup}, so we are closing it in favor of that "
+    "issue. Please add your use case or a reaction over there."
 )
-REPLY_DUPLICATE = "Duplicate of {dup}. Closing in favor of that issue. Please add your use case or a reaction there."
 
 MANAGED_LABELS = {
     "needs-info": ("fbca04", "Waiting for the reporter"),
