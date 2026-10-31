@@ -16,14 +16,8 @@ const noctalia::bar::WidgetDefinition<TrayWidget::Options, TrayWidgetDefinitionC
               field<&Options::pinnedItems>({
                   .key = "pinned",
               }),
-              field<&Options::fileIconOverrides>({
-                  .key = "file_icon_overrides",
-              }),
-              field<&Options::desktopIconOverrides>({
-                  .key = "desktop_icon_overrides",
-              }),
-              field<&Options::tablerIconOverrides>({
-                  .key = "tabler_icon_overrides",
+              field<&Options::iconOverrides>({
+                  .key = "icon_overrides",
               }),
               field<&Options::hidePassive>({
                   .key = "hide_passive",

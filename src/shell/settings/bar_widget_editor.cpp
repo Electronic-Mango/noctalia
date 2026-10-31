@@ -15,6 +15,7 @@
 #include "shell/settings/font_weight_catalog.h"
 #include "shell/settings/path_browse.h"
 #include "shell/settings/settings_content.h"
+#include "shell/settings/tray_icon_override_control.h"
 #include "shell/settings/widget_settings_registry.h"
 #include "ui/builders.h"
 #include "ui/controls/collapsible.h"
@@ -1716,47 +1717,14 @@ namespace settings {
                                       : "settings.widgets.map-placeholders.value"
               ),
           };
-          if (widgetType == "tray" && spec.schema.key == "file_icon_overrides") {
-            map.valuePlaceholder = i18n::tr("settings.widgets.map-placeholders.icon-path");
-            map.pickerGlyph = "photo";
-            map.pickerTooltip = i18n::tr("settings.widgets.map-placeholders.browse-icon");
-            map.pickValue = [](const std::string& currentValue, std::function<void(const std::string&)> commit) {
-              FileDialogOptions options;
-              options.mode = FileDialogMode::Open;
-              options.defaultViewMode = FileDialogViewMode::Grid;
-              options.title = i18n::tr("settings.widgets.settings.custom-image.dialog-title");
-              options.extensions = DirectoryScanner::imageExtensionFilter(true);
-              options.startDirectory = "/usr/share/icons";
-              applyPathDialogStartValue(options, currentValue, PathBrowseKind::File);
-              (void)FileDialog::open(
-                  std::move(options),
-                  [commit = std::move(commit)](std::optional<std::filesystem::path> picked) {
-                    if (picked.has_value()) {
-                      commit(picked->string());
-                    }
-                  }
-              );
+          if (widgetType == "tray" && spec.schema.key == "icon_overrides") {
+            map.newEntryValue = "desktop:";
+            map.makeValueControl = [scale = ctx.scale](
+                                       std::shared_ptr<std::string> value,
+                                       std::function<void(const std::string&)> commit
+                                   ) {
+              return makeTrayIconOverrideControl(scale, std::move(value), std::move(commit));
             };
-          } else if (widgetType == "tray" && spec.schema.key == "tabler_icon_overrides") {
-            map.valuePlaceholder = i18n::tr("settings.widgets.map-placeholders.glyph-name");
-            map.pickerGlyph = "apps";
-            map.pickerTooltip = i18n::tr("settings.widgets.map-placeholders.pick-icon");
-            map.pickValue = [](const std::string& currentValue, std::function<void(const std::string&)> commit) {
-              GlyphPickerDialogOptions options;
-              if (!currentValue.empty()) {
-                options.initialGlyph = currentValue;
-              }
-              (void)GlyphPickerDialog::open(
-                  std::move(options),
-                  [commit = std::move(commit)](std::optional<GlyphPickerResult> picked) {
-                    if (picked.has_value()) {
-                      commit(picked->name);
-                    }
-                  }
-              );
-            };
-          } else if (widgetType == "tray" && spec.schema.key == "desktop_icon_overrides") {
-            map.valuePlaceholder = i18n::tr("settings.widgets.map-placeholders.icon-name");
           }
           ctx.makeStringMapBlock(*panel, entry, map);
           break;

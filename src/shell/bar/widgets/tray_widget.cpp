@@ -12,6 +12,7 @@
 #include "render/text/glyph_registry.h"
 #include "shell/panel/panel_manager.h"
 #include "shell/tray/tray_identifier.h"
+#include "shell/tray/tray_icon_override.h"
 #include "shell/tray/tray_theme_path_index.h"
 #include "system/desktop_entry.h"
 #include "ui/app_icon_colorization.h"
@@ -166,9 +167,7 @@ namespace {
 
 TrayWidget::TrayWidget(ConfigService& config, TrayService* tray, Options options)
     : m_config(config), m_tray(tray), m_hiddenItems(std::move(options.hiddenItems)),
-      m_pinnedItems(std::move(options.pinnedItems)), m_fileIconOverrides(std::move(options.fileIconOverrides)),
-      m_desktopIconOverrides(std::move(options.desktopIconOverrides)),
-      m_tablerIconOverrides(std::move(options.tablerIconOverrides)),
+      m_pinnedItems(std::move(options.pinnedItems)), m_iconOverrides(std::move(options.iconOverrides)),
       m_hidePassive(options.hidePassive), m_drawerMode(options.drawerMode),
       m_itemActivated(std::move(options.itemActivated)), m_barPosition(std::move(options.barPosition)),
       m_panelGridMode(options.panelGridMode),
@@ -633,31 +632,25 @@ void TrayWidget::rebuild(Renderer& renderer) {
       }
       return matchedValue;
     };
-    const std::string* overrideValue = findOverride(m_fileIconOverrides);
-    std::string_view overrideSource = "file";
-    if (overrideValue == nullptr) {
-      overrideValue = findOverride(m_desktopIconOverrides);
-      overrideSource = "desktop";
-    }
-    if (overrideValue == nullptr) {
-      overrideValue = findOverride(m_tablerIconOverrides);
-      overrideSource = "tabler";
-    }
+    const std::string* overrideValue = findOverride(m_iconOverrides);
     if (overrideValue != nullptr) {
       const float overrideSize = std::max(1.0F, iconSize - 2.0F);
+      const auto parsed = tray::parseIconOverride(*overrideValue);
+      const std::string_view overrideSource = parsed ? tray::iconOverrideSources[parsed->source] : "invalid";
+      const std::string value = parsed ? std::string(parsed->value) : std::string{};
       if (overrideSource == "file") {
-        loadIconFile(FileUtils::expandUserPath(*overrideValue).string(), overrideSize);
-      } else if (overrideSource == "desktop" && !overrideValue->contains('/')) {
+        loadIconFile(FileUtils::expandUserPath(value).string(), overrideSize);
+      } else if (overrideSource == "desktop" && !value.contains('/')) {
         const int logicalSize = std::max(1, static_cast<int>(std::round(overrideSize)));
         const int rasterSize = std::max(32, static_cast<int>(std::round(overrideSize * 2.0F)));
-        std::string resolvedOverride = m_iconResolver.resolveStatusVector(*overrideValue, logicalSize);
+        std::string resolvedOverride = m_iconResolver.resolveStatusVector(value, logicalSize);
         if (resolvedOverride.empty()) {
-          resolvedOverride = m_iconResolver.resolve(*overrideValue, rasterSize);
+          resolvedOverride = m_iconResolver.resolve(value, rasterSize);
         }
         loadIconFile(resolvedOverride, overrideSize);
-      } else if (overrideSource == "tabler" && !overrideValue->empty() && GlyphRegistry::contains(*overrideValue)) {
+      } else if (overrideSource == "tabler" && !value.empty() && GlyphRegistry::contains(value)) {
         auto glyph = ui::glyph({
-            .glyph = *overrideValue,
+            .glyph = value,
             .glyphSize = overrideSize,
             .color = widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurface)),
         });

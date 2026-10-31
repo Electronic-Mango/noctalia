@@ -1219,36 +1219,25 @@ namespace settings {
 
     auto block = makeCollectionBlock(entry, overridden);
 
-    const auto addValuePicker = [scale, &map](
-                                    Flex& row, Input* input,
-                                    std::function<void(const std::string&)> commitValue = {}
-                                ) {
-      if (!map.pickValue) {
-        return;
+    const auto makeValueControl = [scale, &map](
+                                      std::shared_ptr<std::string> value,
+                                      std::function<void(const std::string&)> commitValue
+                                  ) -> std::unique_ptr<Node> {
+      if (map.makeValueControl) {
+        return map.makeValueControl(std::move(value), std::move(commitValue));
       }
-      // Dialog results may outlive the row after a settings rebuild.
-      auto handle = std::make_shared<Input*>(input);
-      row.addChild(ui::button({
-          .glyph = map.pickerGlyph,
-          .glyphSize = Style::fontSizeBody * scale,
-          .variant = ButtonVariant::Ghost,
-          .tooltip = map.pickerTooltip,
-          .minWidth = Style::controlHeight * scale,
-          .minHeight = Style::controlHeight * scale,
-          .onClick = [handle, pickValue = map.pickValue, commitValue = std::move(commitValue)]() {
-            pickValue(
-                (*handle)->value(),
-                [weakHandle = std::weak_ptr<Input*>(handle), commitValue](const std::string& value) {
-                  if (auto liveHandle = weakHandle.lock()) {
-                    (*liveHandle)->setValue(value);
-                  }
-                  if (commitValue) {
-                    commitValue(value);
-                  }
-                }
-            );
-          },
-      }));
+      return ui::input({
+          .value = *value,
+          .placeholder = map.valuePlaceholder,
+          .fontSize = Style::fontSizeBody * scale,
+          .controlHeight = Style::controlHeight * scale,
+          .horizontalPadding = Style::spaceSm * scale,
+          .height = Style::controlHeight * scale,
+          .flexGrow = 1.0F,
+          .onChange = [value](const std::string& text) { *value = text; },
+          .onSubmit = std::move(commitValue),
+          .submitOnFocusLoss = true,
+      });
     };
 
     const auto setAndCommit = [setOverride = ctx.setOverride, clearOverride = ctx.clearOverride,
@@ -1297,12 +1286,16 @@ namespace settings {
       }
     }
     std::ranges::sort(customKeys);
+    auto existingKeys = std::make_shared<std::unordered_set<std::string>>();
+    for (const auto& [key, value] : map.entries) {
+      (void)value;
+      existingKeys->insert(key);
+    }
 
     const auto addSuggestedRow = [&](const std::string& key) {
       const auto valueIt = map.entries.find(key);
       const std::string value = valueIt != map.entries.end() ? valueIt->second : std::string{};
       const auto commitValue = makeValueCommit(key, value);
-      Input* valueInput = nullptr;
       auto row = ui::row({.align = FlexAlign::Center, .gap = Style::spaceSm * scale, .fillWidth = true});
       row->addChild(
           ui::label({
@@ -1319,21 +1312,7 @@ namespace settings {
               .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
           })
       );
-      row->addChild(
-          ui::input({
-              .out = &valueInput,
-              .value = value,
-              .placeholder = map.valuePlaceholder,
-              .fontSize = Style::fontSizeBody * scale,
-              .controlHeight = Style::controlHeight * scale,
-              .horizontalPadding = Style::spaceSm * scale,
-              .height = Style::controlHeight * scale,
-              .flexGrow = 1.0F,
-              .onSubmit = commitValue,
-              .submitOnFocusLoss = true,
-          })
-      );
-      addValuePicker(*row, valueInput, commitValue);
+      row->addChild(makeValueControl(std::make_shared<std::string>(value), commitValue));
       row->addChild(
           ui::button({
               // nullopt, not "": an empty glyph name resolves to the missing-glyph skull.
@@ -1353,12 +1332,13 @@ namespace settings {
     };
 
     const auto addCustomRow = [&](const std::string& key) {
-      const std::string value = map.entries.at(key);
-      const auto commitValue = makeValueCommit(key, value);
-      Input* valueInput = nullptr;
+      auto value = std::make_shared<std::string>(map.entries.at(key));
+      const auto commitValue = makeValueCommit(key, *value);
+      Input* keyInput = nullptr;
       auto row = ui::row({.align = FlexAlign::Center, .gap = Style::spaceSm * scale, .fillWidth = true});
       row->addChild(
           ui::input({
+              .out = &keyInput,
               .value = key,
               .placeholder = map.keyPlaceholder,
               .fontSize = Style::fontSizeBody * scale,
@@ -1367,12 +1347,17 @@ namespace settings {
               .height = Style::controlHeight * scale,
               .flexGrow = 1.0F,
               .onSubmit =
-                  [removeAndCommit, setAndCommit, value, oldKey = key](const std::string& newKey) {
-                    if (newKey.empty() || newKey == oldKey) {
+                  [removeAndCommit, setAndCommit, value, existingKeys, keyInput,
+                   oldKey = key](const std::string& newKey) {
+                    if (newKey == oldKey) {
+                      return;
+                    }
+                    if (newKey.empty() || existingKeys->contains(newKey)) {
+                      keyInput->setInvalid(true);
                       return;
                     }
                     removeAndCommit(oldKey);
-                    setAndCommit(newKey, value);
+                    setAndCommit(newKey, *value);
                   },
               .submitOnFocusLoss = true,
           })
@@ -1384,21 +1369,7 @@ namespace settings {
               .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
           })
       );
-      row->addChild(
-          ui::input({
-              .out = &valueInput,
-              .value = value,
-              .placeholder = map.valuePlaceholder,
-              .fontSize = Style::fontSizeBody * scale,
-              .controlHeight = Style::controlHeight * scale,
-              .horizontalPadding = Style::spaceSm * scale,
-              .height = Style::controlHeight * scale,
-              .flexGrow = 1.0F,
-              .onSubmit = commitValue,
-              .submitOnFocusLoss = true,
-          })
-      );
-      addValuePicker(*row, valueInput, commitValue);
+      row->addChild(makeValueControl(value, commitValue));
       row->addChild(
           ui::button({
               .glyph = "close",
@@ -1421,7 +1392,7 @@ namespace settings {
 
     auto addRow = ui::row({.align = FlexAlign::Center, .gap = Style::spaceSm * scale, .fillWidth = true});
     Input* keyInput = nullptr;
-    Input* valueInput = nullptr;
+    auto newValue = std::make_shared<std::string>(map.newEntryValue);
     addRow->addChild(
         ui::input({
             .out = &keyInput,
@@ -1440,18 +1411,7 @@ namespace settings {
             .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
         })
     );
-    addRow->addChild(
-        ui::input({
-            .out = &valueInput,
-            .placeholder = map.valuePlaceholder,
-            .fontSize = Style::fontSizeBody * scale,
-            .controlHeight = Style::controlHeight * scale,
-            .horizontalPadding = Style::spaceSm * scale,
-            .height = Style::controlHeight * scale,
-            .flexGrow = 1.0F,
-        })
-    );
-    addValuePicker(*addRow, valueInput);
+    addRow->addChild(makeValueControl(newValue, {}));
     addRow->addChild(
         ui::button({
             .glyph = "add",
@@ -1459,15 +1419,18 @@ namespace settings {
             .variant = ButtonVariant::Ghost,
             .minWidth = Style::controlHeight * scale,
             .minHeight = Style::controlHeight * scale,
-            .onClick = [keyInput, valueInput, setAndCommit] {
-              if (keyInput == nullptr || valueInput == nullptr) {
+            .onClick = [keyInput, newValue, existingKeys, setAndCommit] {
+              if (keyInput == nullptr) {
                 return;
               }
               const std::string key = keyInput->value();
-              const std::string value = valueInput->value();
-              if (!key.empty()) {
-                setAndCommit(key, value);
+              const std::string value = *newValue;
+              if (key.empty() || existingKeys->contains(key)) {
+                keyInput->setInvalid(true);
+                return;
               }
+              keyInput->setInvalid(false);
+              setAndCommit(key, value);
             },
         })
     );

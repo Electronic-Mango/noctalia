@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <numeric>
 #include <optional>
 #include <span>
@@ -215,9 +216,9 @@ namespace settings {
     std::vector<std::string> suggestedKeys;
     std::string keyPlaceholder;
     std::string valuePlaceholder;
-    std::string pickerGlyph;
-    std::string pickerTooltip;
-    std::function<void(const std::string&, std::function<void(const std::string&)>)> pickValue;
+    std::string newEntryValue;
+    std::function<std::unique_ptr<Node>(std::shared_ptr<std::string>, std::function<void(const std::string&)>)>
+        makeValueControl;
   };
 
   struct ShortcutListSetting {
