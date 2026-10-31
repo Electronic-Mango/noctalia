@@ -53,7 +53,9 @@ namespace {
   constexpr auto kFilterDebounceInterval = std::chrono::milliseconds(120);
   constexpr float kMinTileWidth = 180.0F;
   constexpr float kMonitorSelectMinWidth = 136.0F;
-  constexpr float kFavoriteSelectMinWidth = 168.0F;
+  // The palette button only opens the picker dialog, so it stays compact and long names ellipsize.
+  constexpr float kPaletteButtonMinWidth = 96.0F;
+  constexpr float kPaletteButtonMaxWidth = 160.0F;
   constexpr float kFavoritesMetaRowGap = Style::spaceSm;
   constexpr float kTileAspect = 0.78F; // height / width, leaves room for label under widescreen thumb
 
@@ -625,14 +627,19 @@ void WallpaperPanel::create() {
   root->addChild(std::move(toolbar));
 
   const float favoritesControlHeight = Style::controlHeightSm * scale;
-  const float favoritesLabelFontSize = Style::fontSizeCaption * scale;
 
+  // Two groups so long translations or wide fonts wrap the theme controls onto a second line instead of
+  // overflowing; SpaceBetween keeps them at opposite ends while they fit on one line.
   auto favoritesOptions = ui::row({
       .out = &m_favoritesOptionsColumn,
       .align = FlexAlign::Center,
+      .justify = FlexJustify::SpaceBetween,
+      .wrap = true,
       .gap = kFavoritesMetaRowGap * scale,
       .fillWidth = true,
   });
+  auto paletteGroup = ui::row({.align = FlexAlign::Center, .gap = kFavoritesMetaRowGap * scale});
+  auto displayGroup = ui::row({.align = FlexAlign::Center, .gap = kFavoritesMetaRowGap * scale});
 
   // Only offer palette sources that actually have palettes; Community/Custom are empty
   // when nothing is fetched/installed, and selecting them would do nothing.
@@ -651,7 +658,7 @@ void WallpaperPanel::create() {
     addPaletteSource(PaletteSource::Custom, "settings.options.theme.source.custom");
   }
 
-  favoritesOptions->addChild(
+  paletteGroup->addChild(
       ui::segmented({
           .out = &m_favoritePaletteSourceSegmented,
           .options = std::move(paletteSourceOptions),
@@ -684,15 +691,16 @@ void WallpaperPanel::create() {
       })
   );
 
-  favoritesOptions->addChild(
+  paletteGroup->addChild(
       ui::button({
           .out = &m_favoritePaletteDetailButton,
-          .fontSize = favoritesLabelFontSize,
+          .fontSize = Style::fontSizeBody * scale,
           .controlHeight = favoritesControlHeight,
           .contentAlign = ButtonContentAlign::Start,
           .variant = ButtonVariant::Default,
           .surfaceOpacity = panelCardOpacity(),
-          .minWidth = kFavoriteSelectMinWidth * scale,
+          .minWidth = kPaletteButtonMinWidth * scale,
+          .maxWidth = kPaletteButtonMaxWidth * scale,
           .paddingH = Style::spaceSm * scale,
           .radius = Style::scaledRadiusMd(scale),
           .visible = false,
@@ -700,7 +708,7 @@ void WallpaperPanel::create() {
       })
   );
 
-  favoritesOptions->addChild(
+  paletteGroup->addChild(
       ui::button({
           .out = &m_favoriteCurrentButton,
           .glyph = "star",
@@ -715,7 +723,7 @@ void WallpaperPanel::create() {
       })
   );
 
-  favoritesOptions->addChild(ui::spacer());
+  favoritesOptions->addChild(std::move(paletteGroup));
 
   std::vector<std::string> fillModeOptions;
   fillModeOptions.reserve(std::size(kWallpaperFillModes));
@@ -723,7 +731,7 @@ void WallpaperPanel::create() {
     fillModeOptions.emplace_back(i18n::tr(option.labelKey));
   }
 
-  favoritesOptions->addChild(
+  displayGroup->addChild(
       ui::select(
           {.out = &m_fillModeSelect,
            .options = std::move(fillModeOptions),
@@ -743,7 +751,7 @@ void WallpaperPanel::create() {
       )
   );
 
-  favoritesOptions->addChild(
+  displayGroup->addChild(
       ui::segmented({
           .out = &m_favoriteThemeSegmented,
           .options =
@@ -768,6 +776,7 @@ void WallpaperPanel::create() {
       })
   );
 
+  favoritesOptions->addChild(std::move(displayGroup));
   root->addChild(std::move(favoritesOptions));
 
   // ── Body: virtualized scrolling grid ──────────────────────────────────
