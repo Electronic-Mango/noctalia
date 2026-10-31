@@ -710,6 +710,9 @@ namespace {
     size_t len = 0;
     const char* path = luaL_checklstring(L, 1, &len);
     auto* host = hostForState(L);
+    if (host != nullptr) {
+      host->recordSettingRead(std::string_view(path, len));
+    }
     const auto snapshot = host != nullptr ? host->api().configSnapshot() : nullptr;
     if (snapshot == nullptr) {
       lua_pushnil(L);
