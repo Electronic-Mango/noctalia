@@ -19,6 +19,7 @@
 #include "theme/builtin_palettes.h"
 #include "theme/builtin_templates.h"
 #include "ui/app_icon_colorization.h"
+#include "ui/palette_swatch_preview.h"
 #include "util/file_utils.h"
 #include "util/string_utils.h"
 
@@ -222,22 +223,6 @@ namespace settings {
       return select;
     }
 
-    ColorSwatchPreview palettePreviewFromPalette(const noctalia::theme::FixedPalette& palette) {
-      return ColorSwatchPreview{
-          .surface = fixedColorSpec(palette.surface),
-          .swatches = {
-              fixedColorSpec(palette.primary),
-              fixedColorSpec(palette.secondary),
-              fixedColorSpec(palette.tertiary),
-              fixedColorSpec(palette.error),
-          },
-      };
-    }
-
-    ColorSwatchPreview builtinPalettePreview(const noctalia::theme::BuiltinPalette& palette, ThemeMode mode) {
-      return palettePreviewFromPalette(mode == ThemeMode::Light ? palette.light.palette : palette.dark.palette);
-    }
-
     SelectSetting builtinPaletteSelect(std::string_view selected, ThemeMode mode) {
       std::vector<SelectOption> opts;
       opts.reserve(noctalia::theme::builtinPalettes().size());
@@ -247,7 +232,7 @@ namespace settings {
                 .value = std::string(palette.name),
                 .label = std::string(palette.name),
                 .description = {},
-                .preview = builtinPalettePreview(palette, mode),
+                .preview = builtinPaletteSwatchPreview(palette, mode),
             }
         );
       }
@@ -528,6 +513,8 @@ namespace settings {
             .placeholder = tr("settings.schema.appearance.community-palette.search-placeholder"),
             .emptyText = tr("ui.controls.search-picker.empty"),
             .preferredHeight = 240.0F,
+            .onSelect = {},
+            .keepOpenOnSelect = true,
         };
       }
       entries.push_back(makeEntry(
@@ -545,6 +532,8 @@ namespace settings {
             .placeholder = tr("settings.schema.appearance.custom-palette.search-placeholder"),
             .emptyText = tr("ui.controls.search-picker.empty"),
             .preferredHeight = 240.0F,
+            .onSelect = {},
+            .keepOpenOnSelect = true,
         };
       }
       entries.push_back(makeEntry(

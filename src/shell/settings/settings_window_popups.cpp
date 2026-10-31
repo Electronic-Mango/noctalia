@@ -497,11 +497,13 @@ void SettingsWindow::openSearchPickerPopup(settings::SearchPickerOpenRequest req
     m_widgetAddPopup->close();
   }
 
-  m_searchPickerPopup->setOnSelect([this, settingPath = request.settingPath, selectedValue = request.selectedValue,
-                                    onSelect = request.onSelect](const std::string& value) {
-    if (value == selectedValue) {
+  // `currentValue` follows picks so a picker that stays open skips re-applying the option already applied.
+  m_searchPickerPopup->setOnSelect([this, settingPath = request.settingPath, currentValue = request.selectedValue,
+                                    onSelect = request.onSelect](const std::string& value) mutable {
+    if (value == currentValue) {
       return;
     }
+    currentValue = value;
     if (onSelect) {
       onSelect(value);
       return;
@@ -544,6 +546,7 @@ void SettingsWindow::openSearchPickerPopup(settings::SearchPickerOpenRequest req
           .placeholder = std::move(request.placeholder),
           .emptyText = std::move(request.emptyText),
           .scale = uiScale(),
+          .keepOpenOnSelect = request.keepOpenOnSelect,
       }
   );
 }

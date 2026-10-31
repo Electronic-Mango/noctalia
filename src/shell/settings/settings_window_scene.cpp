@@ -36,6 +36,7 @@
 #include "ui/builders.h"
 #include "ui/controls/select_dropdown_popup.h"
 #include "ui/palette.h"
+#include "ui/palette_swatch_preview.h"
 #include "ui/scroll_into_view.h"
 #include "ui/style.h"
 #include "util/string_utils.h"
@@ -63,39 +64,10 @@ namespace {
 
   constexpr auto kSearchDebounceInterval = std::chrono::milliseconds(120);
 
-  bool useLightPalettePreview(ThemeMode mode) { return mode == ThemeMode::Light; }
-
   // The IPC command set is closed (IpcService::bind takes a static cli::Command), so a missing key
   // means en.json drifted from the schema; tr() surfaces that as !!key!! instead of hiding it.
   std::string translatedIpcActionField(std::string_view command, std::string_view field) {
     return i18n::tr(std::format("settings.widgets.actions.commands.{}.{}", command, field));
-  }
-
-  ColorSwatchPreview palettePreviewFromMetadata(const noctalia::theme::AvailablePalette::PreviewMode& metadata) {
-    ColorSwatchPreview preview;
-    Color surface;
-    if (tryParseHexColor(metadata.surface, surface)) {
-      preview.surface = fixedColorSpec(surface);
-    }
-    preview.swatches.reserve(metadata.accents.size());
-    for (const auto& hexColor : metadata.accents) {
-      Color color;
-      if (tryParseHexColor(hexColor, color)) {
-        preview.swatches.push_back(fixedColorSpec(color));
-      }
-    }
-    return preview;
-  }
-
-  ColorSwatchPreview availablePalettePreview(const noctalia::theme::AvailablePalette& palette, ThemeMode mode) {
-    if (useLightPalettePreview(mode)) {
-      ColorSwatchPreview preview = palettePreviewFromMetadata(palette.preview.light);
-      if (!preview.empty()) {
-        return preview;
-      }
-      return palettePreviewFromMetadata(palette.preview.dark);
-    }
-    return palettePreviewFromMetadata(palette.preview.dark);
   }
 
   std::unique_ptr<Label>
@@ -779,7 +751,7 @@ settings::RegistryEnvironment SettingsWindow::buildRegistryEnvironment() const {
             .value = paletteInfo.name,
             .label = paletteInfo.name,
             .description = {},
-            .preview = availablePalettePreview(paletteInfo, previewMode),
+            .preview = availablePaletteSwatchPreview(paletteInfo, previewMode),
         }
     );
   }
@@ -789,7 +761,7 @@ settings::RegistryEnvironment SettingsWindow::buildRegistryEnvironment() const {
             .value = p.name,
             .label = p.name,
             .description = {},
-            .preview = availablePalettePreview(p, previewMode),
+            .preview = availablePaletteSwatchPreview(p, previewMode),
         }
     );
   }

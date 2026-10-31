@@ -110,6 +110,8 @@ namespace settings {
     float preferredHeight = 240.0F;
     // When set, replaces the default commit for the setting path.
     std::function<void(const std::string&)> onSelect;
+    // Keep the picker open after a pick so options can be tried one after another.
+    bool keepOpenOnSelect = false;
   };
 
   struct SliderSetting {
