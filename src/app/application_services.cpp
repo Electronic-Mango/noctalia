@@ -1305,14 +1305,20 @@ void Application::initSystemBusServices() {
     }
 
     // NetworkManager is preferred, and its backend follows the bus name when NetworkManager starts later
-    // or restarts. When it is not running at startup, a standalone wpa_supplicant or iwd takes over if
-    // one is; otherwise the NetworkManager backend waits for it to appear.
+    // or restarts. When its unit is enabled but it is not running yet at startup, the backend waits for it:
+    // a wpa_supplicant on the bus then is NetworkManager's own. Otherwise a usable standalone wpa_supplicant
+    // or iwd takes over, and without one the NetworkManager backend still waits.
     try {
       m_networkService = std::make_unique<NetworkManagerService>(*m_systemBus);
     } catch (const std::exception& e) {
       kLog.warn("NetworkManager backend disabled: {}", e.what());
     }
-    if (m_networkService == nullptr || !m_networkService->available()) {
+    const bool nmWaiting = m_networkService != nullptr
+        && !m_networkService->available()
+        && m_systemBus->systemdUnitEnabled("NetworkManager.service");
+    if (nmWaiting) {
+      kLog.info("network service waiting for NetworkManager");
+    } else if (m_networkService == nullptr || !m_networkService->available()) {
       try {
         m_networkService = std::make_unique<WpaSupplicantService>(*m_systemBus);
         kLog.info("network service active (wpa_supplicant)");
