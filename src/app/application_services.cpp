@@ -1255,7 +1255,7 @@ void Application::initSystemBusServices() {
       m_upowerService = std::make_unique<UPowerService>(*m_systemBus);
       const auto& initialPower = m_upowerService->state();
       m_batteryHookState.reset(initialPower);
-      m_prevBatteryPluggedForEvents = initialPower.isPresent ? batteryStatePlugged(initialPower.state) : std::nullopt;
+      m_prevBatteryPluggedForEvents = m_upowerService->externalPowerConnected();
       m_prevBatteryPeripheralPathForEvents = m_upowerService->statePeripheralPath();
       m_batteryWarningMonitor.evaluate(m_configService.config().battery, *m_upowerService, m_notificationManager);
       m_upowerService->setChangeCallback([this, shouldRefreshControlCenter](const UPowerChange& change) {
