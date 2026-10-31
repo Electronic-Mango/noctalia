@@ -874,7 +874,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Wallpaper, "automation", tr("settings.schema.wallpaper.automation-recursive.label"),
         tr("settings.schema.wallpaper.automation-recursive.description"), {"wallpaper", "automation", "recursive"},
-        ToggleSetting{cfg.wallpaper.automation.recursive}, "subdirectories", true
+        ToggleSetting{cfg.wallpaper.automation.recursive}, "subdirectories"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Wallpaper, "automation", tr("settings.schema.wallpaper.automation-pause-on-fullscreen.label"),
