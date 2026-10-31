@@ -1818,12 +1818,12 @@ void SettingsWindow::refreshSettingsRegistry(const Config& cfg) {
 
   if (m_syncGreeterAppearance && env.greeterSyncAvailable) {
     auto it = std::ranges::find_if(m_settingsRegistry, [](const settings::SettingEntry& e) {
-      return e.section == settings::SettingsSection::Security
+      return e.section == settings::SettingsSection::LockScreen
           && e.group == "greeter"
           && e.path == std::vector<std::string>{"shell", "greeter_sync", "privilege_command"};
     });
     settings::SettingEntry btn{
-        .section = settings::SettingsSection::Security,
+        .section = settings::SettingsSection::LockScreen,
         .group = "greeter",
         .title = i18n::tr("settings.schema.shell.sync-greeter.label"),
         .subtitle = i18n::tr("settings.schema.shell.sync-greeter.description"),
@@ -1839,7 +1839,7 @@ void SettingsWindow::refreshSettingsRegistry(const Config& cfg) {
     auto insertedIt = m_settingsRegistry.insert(it, std::move(btn));
     ++insertedIt;
     settings::SettingEntry toggle{
-        .section = settings::SettingsSection::Security,
+        .section = settings::SettingsSection::LockScreen,
         .group = "greeter",
         .title = i18n::tr("settings.schema.shell.greeter-sync-auto.label"),
         .subtitle = i18n::tr("settings.schema.shell.greeter-sync-auto.description"),
@@ -1978,16 +1978,16 @@ void SettingsWindow::refreshSettingsRegistry(const Config& cfg) {
 
   if (m_openLockscreenWidgetEditor) {
     auto it = std::ranges::find_if(m_settingsRegistry, [](const settings::SettingEntry& e) {
-      return e.section == settings::SettingsSection::Security
-          && e.group == "lock-screen"
+      return e.section == settings::SettingsSection::LockScreen
+          && e.group == "widgets"
           && e.path == std::vector<std::string>{"lockscreen_widgets", "enabled"};
     });
     if (it != m_settingsRegistry.end()) {
       ++it;
     }
     settings::SettingEntry btn{
-        .section = settings::SettingsSection::Security,
-        .group = "lock-screen",
+        .section = settings::SettingsSection::LockScreen,
+        .group = "widgets",
         .title = i18n::tr("settings.schema.lockscreen.widgets-editor.label"),
         .subtitle = i18n::tr("settings.schema.lockscreen.widgets-editor.description"),
         .path = {},

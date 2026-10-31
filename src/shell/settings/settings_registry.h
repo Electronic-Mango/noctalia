@@ -29,6 +29,7 @@ namespace settings {
     Wallpaper,
     Templates,
     Desktop,
+    LockScreen,
     Dock,
     Panels,
     Launcher,
