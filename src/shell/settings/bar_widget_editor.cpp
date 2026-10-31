@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <format>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <set>
@@ -1703,21 +1704,61 @@ namespace settings {
           } else if (const auto* defaults = std::get_if<WidgetSettingStringMap>(&spec.schema.defaultValue)) {
             entries = *defaults;
           }
-          ctx.makeStringMapBlock(
-              *panel, entry,
-              StringMapSetting{
-                  .entries = std::move(entries),
-                  .suggestedKeys = {},
-                  .keyPlaceholder = i18n::tr(
-                      effectsProfileGlyphs ? "settings.widgets.map-placeholders.effects-profile-name"
-                                           : "settings.widgets.map-placeholders.key"
-                  ),
-                  .valuePlaceholder = i18n::tr(
-                      effectsProfileGlyphs ? "settings.widgets.map-placeholders.glyph-name"
-                                           : "settings.widgets.map-placeholders.value"
-                  ),
+          StringMapSetting map{
+              .entries = std::move(entries),
+              .suggestedKeys = {},
+              .keyPlaceholder = i18n::tr(
+                  effectsProfileGlyphs ? "settings.widgets.map-placeholders.effects-profile-name"
+                                      : "settings.widgets.map-placeholders.key"
+              ),
+              .valuePlaceholder = i18n::tr(
+                  effectsProfileGlyphs ? "settings.widgets.map-placeholders.glyph-name"
+                                      : "settings.widgets.map-placeholders.value"
+              ),
+          };
+          if (widgetType == "tray" && spec.schema.key == "file_icon_overrides") {
+            map.valuePlaceholder = i18n::tr("settings.widgets.map-placeholders.icon-path");
+            map.pickerGlyph = "photo";
+            map.pickerTooltip = i18n::tr("settings.widgets.map-placeholders.browse-icon");
+            map.pickValue = [](const std::string& currentValue, std::function<void(const std::string&)> commit) {
+              FileDialogOptions options;
+              options.mode = FileDialogMode::Open;
+              options.defaultViewMode = FileDialogViewMode::Grid;
+              options.title = i18n::tr("settings.widgets.settings.custom-image.dialog-title");
+              options.extensions = DirectoryScanner::imageExtensionFilter(true);
+              options.startDirectory = "/usr/share/icons";
+              applyPathDialogStartValue(options, currentValue, PathBrowseKind::File);
+              (void)FileDialog::open(
+                  std::move(options),
+                  [commit = std::move(commit)](std::optional<std::filesystem::path> picked) {
+                    if (picked.has_value()) {
+                      commit(picked->string());
+                    }
+                  }
+              );
+            };
+          } else if (widgetType == "tray" && spec.schema.key == "tabler_icon_overrides") {
+            map.valuePlaceholder = i18n::tr("settings.widgets.map-placeholders.glyph-name");
+            map.pickerGlyph = "apps";
+            map.pickerTooltip = i18n::tr("settings.widgets.map-placeholders.pick-icon");
+            map.pickValue = [](const std::string& currentValue, std::function<void(const std::string&)> commit) {
+              GlyphPickerDialogOptions options;
+              if (!currentValue.empty()) {
+                options.initialGlyph = currentValue;
               }
-          );
+              (void)GlyphPickerDialog::open(
+                  std::move(options),
+                  [commit = std::move(commit)](std::optional<GlyphPickerResult> picked) {
+                    if (picked.has_value()) {
+                      commit(picked->name);
+                    }
+                  }
+              );
+            };
+          } else if (widgetType == "tray" && spec.schema.key == "desktop_icon_overrides") {
+            map.valuePlaceholder = i18n::tr("settings.widgets.map-placeholders.icon-name");
+          }
+          ctx.makeStringMapBlock(*panel, entry, map);
           break;
         }
         case WidgetControlKind::Select: {

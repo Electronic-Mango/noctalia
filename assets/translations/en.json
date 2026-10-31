@@ -4403,11 +4403,15 @@
         "temp": "Temperature"
       },
       "map-placeholders": {
+        "browse-icon": "Browse for an icon file",
         "effects-profile-name": "Profile name",
         "glyph-name": "Glyph name",
+        "icon-name": "Theme icon name (without extension)",
+        "icon-path": "Icon file path",
         "key": "Key",
         "label": "Label",
         "layout-name": "Layout name",
+        "pick-icon": "Pick a Tabler icon",
         "value": "Value"
       },
       "options": {
@@ -4757,9 +4761,17 @@
           "description": "Overrides the widget color for icons only; fixed hex colors are also supported",
           "label": "Icon Color"
         },
-        "icon-overrides": {
-          "description": "Map tray item identifiers to icon file paths or names; names try the current theme, then built-in Tabler icons, then the application icon. Theme names omit extensions; paths containing symbolic or /status/ use symbolic coloring",
-          "label": "Icon Overrides"
+        "desktop-icon-overrides": {
+          "description": "Map tray item identifiers to current desktop theme icon names, without extensions. Symbolic icons retain symbolic coloring. File overrides take precedence; missing icons use the application icon",
+          "label": "Desktop Theme Icon Overrides"
+        },
+        "file-icon-overrides": {
+          "description": "Map tray item identifiers to icon file paths. Takes precedence over desktop theme and Tabler overrides; missing files use the application icon",
+          "label": "File Icon Overrides"
+        },
+        "tabler-icon-overrides": {
+          "description": "Map tray item identifiers to built-in Tabler icons. File and desktop theme overrides take precedence; unknown icons use the application icon",
+          "label": "Tabler Icon Overrides"
         },
         "icon-scale": {
           "description": "Scale of taskbar application icons relative to their default size",

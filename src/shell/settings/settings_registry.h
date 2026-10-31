@@ -215,6 +215,9 @@ namespace settings {
     std::vector<std::string> suggestedKeys;
     std::string keyPlaceholder;
     std::string valuePlaceholder;
+    std::string pickerGlyph;
+    std::string pickerTooltip;
+    std::function<void(const std::string&, std::function<void(const std::string&)>)> pickValue;
   };
 
   struct ShortcutListSetting {

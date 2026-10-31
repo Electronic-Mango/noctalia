@@ -166,7 +166,9 @@ namespace {
 
 TrayWidget::TrayWidget(ConfigService& config, TrayService* tray, Options options)
     : m_config(config), m_tray(tray), m_hiddenItems(std::move(options.hiddenItems)),
-      m_pinnedItems(std::move(options.pinnedItems)), m_iconOverrides(std::move(options.iconOverrides)),
+      m_pinnedItems(std::move(options.pinnedItems)), m_fileIconOverrides(std::move(options.fileIconOverrides)),
+      m_desktopIconOverrides(std::move(options.desktopIconOverrides)),
+      m_tablerIconOverrides(std::move(options.tablerIconOverrides)),
       m_hidePassive(options.hidePassive), m_drawerMode(options.drawerMode),
       m_itemActivated(std::move(options.itemActivated)), m_barPosition(std::move(options.barPosition)),
       m_panelGridMode(options.panelGridMode),
@@ -619,31 +621,43 @@ void TrayWidget::rebuild(Renderer& renderer) {
       }
     };
 
-    const std::string* overrideToken = nullptr;
-    const std::string* overridePath = nullptr;
-    for (const auto& [token, path] : m_iconOverrides) {
-      // Resolve overlapping matches deterministically, independent of map iteration order.
-      if (tray::pinnedTokenMatchesItem(token, item) && (overrideToken == nullptr || token < *overrideToken)) {
-        overrideToken = &token;
-        overridePath = &path;
-      }
-    }
-    if (overridePath != nullptr) {
-      const float overrideSize = std::max(1.0F, iconSize - 2.0F);
-      std::string resolvedOverride = FileUtils::expandUserPath(*overridePath).string();
-      const bool isPath = resolvedOverride.contains('/');
-      if (!isPath) {
-        const int logicalSize = std::max(1, static_cast<int>(std::round(overrideSize)));
-        const int rasterSize = std::max(32, static_cast<int>(std::round(overrideSize * 2.0F)));
-        resolvedOverride = m_iconResolver.resolveStatusVector(*overridePath, logicalSize);
-        if (resolvedOverride.empty()) {
-          resolvedOverride = m_iconResolver.resolve(*overridePath, rasterSize);
+    const auto findOverride = [&item](const auto& overrides) -> const std::string* {
+      const std::string* matchedToken = nullptr;
+      const std::string* matchedValue = nullptr;
+      for (const auto& [token, value] : overrides) {
+        // Resolve overlapping matches deterministically, independent of map iteration order.
+        if (tray::pinnedTokenMatchesItem(token, item) && (matchedToken == nullptr || token < *matchedToken)) {
+          matchedToken = &token;
+          matchedValue = &value;
         }
       }
-      loadIconFile(resolvedOverride, overrideSize);
-      if (iconNode == nullptr && !isPath && GlyphRegistry::contains(*overridePath)) {
+      return matchedValue;
+    };
+    const std::string* overrideValue = findOverride(m_fileIconOverrides);
+    std::string_view overrideSource = "file";
+    if (overrideValue == nullptr) {
+      overrideValue = findOverride(m_desktopIconOverrides);
+      overrideSource = "desktop";
+    }
+    if (overrideValue == nullptr) {
+      overrideValue = findOverride(m_tablerIconOverrides);
+      overrideSource = "tabler";
+    }
+    if (overrideValue != nullptr) {
+      const float overrideSize = std::max(1.0F, iconSize - 2.0F);
+      if (overrideSource == "file") {
+        loadIconFile(FileUtils::expandUserPath(*overrideValue).string(), overrideSize);
+      } else if (overrideSource == "desktop" && !overrideValue->contains('/')) {
+        const int logicalSize = std::max(1, static_cast<int>(std::round(overrideSize)));
+        const int rasterSize = std::max(32, static_cast<int>(std::round(overrideSize * 2.0F)));
+        std::string resolvedOverride = m_iconResolver.resolveStatusVector(*overrideValue, logicalSize);
+        if (resolvedOverride.empty()) {
+          resolvedOverride = m_iconResolver.resolve(*overrideValue, rasterSize);
+        }
+        loadIconFile(resolvedOverride, overrideSize);
+      } else if (overrideSource == "tabler" && !overrideValue->empty() && GlyphRegistry::contains(*overrideValue)) {
         auto glyph = ui::glyph({
-            .glyph = *overridePath,
+            .glyph = *overrideValue,
             .glyphSize = overrideSize,
             .color = widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurface)),
         });
@@ -654,8 +668,8 @@ void TrayWidget::rebuild(Renderer& renderer) {
       }
       if (iconNode == nullptr) {
         kLog.warn(
-            "tray widget icon override id={} value={} failed-to-load; using application icon", item.id,
-            ImageSourceLog::describe(*overridePath)
+            "tray widget icon override id={} source={} value={} failed-to-load; using application icon", item.id,
+            overrideSource, ImageSourceLog::describe(*overrideValue)
         );
       }
     }

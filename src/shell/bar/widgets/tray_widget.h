@@ -27,7 +27,9 @@ public:
   struct Options {
     std::vector<std::string> hiddenItems;
     std::vector<std::string> pinnedItems;
-    std::unordered_map<std::string, std::string> iconOverrides;
+    std::unordered_map<std::string, std::string> fileIconOverrides;
+    std::unordered_map<std::string, std::string> desktopIconOverrides;
+    std::unordered_map<std::string, std::string> tablerIconOverrides;
     bool hidePassive = true;
     bool drawerMode = false;
     std::function<void()> itemActivated;
@@ -86,7 +88,9 @@ private:
   std::vector<TrayItemInfo> m_items;
   std::vector<std::string> m_hiddenItems;
   std::vector<std::string> m_pinnedItems;
-  std::unordered_map<std::string, std::string> m_iconOverrides;
+  std::unordered_map<std::string, std::string> m_fileIconOverrides;
+  std::unordered_map<std::string, std::string> m_desktopIconOverrides;
+  std::unordered_map<std::string, std::string> m_tablerIconOverrides;
   bool m_hidePassive = true;
   std::vector<Image*> m_loadedImages;
   std::vector<Image*> m_colorizedAppIcons;
