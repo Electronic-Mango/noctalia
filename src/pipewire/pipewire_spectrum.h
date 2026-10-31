@@ -41,6 +41,8 @@ public:
   void setSmoothing(bool enabled);
   [[nodiscard]] bool smoothing() const noexcept { return m_smoothing; }
 
+  void setFrameRate(int framesPerSecond);
+
   [[nodiscard]] const std::vector<float>& values(ListenerId id) const noexcept;
   [[nodiscard]] bool idle() const noexcept { return m_idle; }
 
@@ -49,8 +51,6 @@ public:
   void handleAudioStateChanged();
 
 private:
-  static constexpr int kFrameRateHz = 60;
-
   struct ListenerState {
     int bandCount = 32;
     ChangeCallback callback;
@@ -96,6 +96,7 @@ private:
   int m_upperCutoff = 20000;
   float m_noiseReduction = 0.77F;
   bool m_smoothing = true;
+  int m_frameRateHz = 60;
   std::vector<float> m_analysisBands;
   bool m_idle = true;
 
